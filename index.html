@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>でかでか時計</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --fg:#e6eef8;
+      --accent:#6ee7b7;
+      --muted:rgba(230,238,248,0.6);
+      --maxsize: clamp(48px, 18vw, 220px);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),#07101a);
+      color:var(--fg);
+      font-family: Inter, -apple-system, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', system-ui, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .wrap{
+      text-align:center;
+      width:100%;
+      max-width:1200px;
+    }
+
+    .time{
+      font-weight:700;
+      font-size:var(--maxsize);
+      line-height:0.95;
+      letter-spacing: -0.02em;
+      text-wrap:balance;
+      text-shadow: 0 6px 30px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.02) inset;
+      margin:0;
+      padding:0.1em 0;
+    }
+
+    .date{
+      font-size:clamp(14px, 2.2vw, 22px);
+      color:var(--muted);
+      margin-top:6px;
+    }
+
+    .controls{
+      margin-top:18px;
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.08);
+      color:var(--fg);
+      padding:8px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:14px;
+      backdrop-filter: blur(6px);
+    }
+
+    .btn:active{transform:translateY(1px)}
+
+    .option{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:8px;
+      background:rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.02);
+      font-size:14px;
+    }
+
+    .small{font-size:12px;color:var(--muted)}
+
+    input[type=range]{width:160px}
+
+    /* responsive smaller screens */
+    @media (max-width:420px){
+      :root{--maxsize: clamp(36px, 22vw, 120px)}
+      .controls{gap:8px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap" role="main">
+    <h1 id="time" class="time" aria-live="polite" aria-atomic="true">--:--:--</h1>
+    <div id="date" class="date" aria-hidden="false">---</div>
+
+    <div class="controls" aria-hidden="false">
+      <label class="option small">
+        <input id="toggle24" type="checkbox" style="transform:scale(1.1)" /> 24時間表示
+      </label>
+
+      <label class="option small">
+        <input id="toggleSeconds" type="checkbox" checked style="transform:scale(1.1)" /> 秒表示
+      </label>
+
+      <div class="option small">
+        フォントサイズ
+        <input id="sizeRange" type="range" min="24" max="320" value="160" />
+      </div>
+
+      <button id="fullscreenBtn" class="btn">フルスクリーン</button>
+      <button id="copyBtn" class="btn">時刻をコピー</button>
+    </div>
+
+    <p class="small" style="margin-top:12px;opacity:0.9">⌘/Ctrl + F でブラウザ全画面も使えるよ。ダークテーマで大きく表示します。</p>
+  </div>
+
+  <script>
+    (function(){
+      const timeEl = document.getElementById('time');
+      const dateEl = document.getElementById('date');
+      const toggle24 = document.getElementById('toggle24');
+      const toggleSeconds = document.getElementById('toggleSeconds');
+      const sizeRange = document.getElementById('sizeRange');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const copyBtn = document.getElementById('copyBtn');
+
+      // initialize font-size from range
+      const root = document.documentElement;
+      function applySize(px){
+        root.style.setProperty('--maxsize', px + 'px');
+      }
+      applySize(sizeRange.value);
+      sizeRange.addEventListener('input', (e)=> applySize(e.target.value));
+
+      function pad(n){return n.toString().padStart(2,'0')}
+
+      function update(){
+        const now = new Date();
+        const use24 = toggle24.checked;
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+        let ampm = '';
+        if(!use24){
+          ampm = hours >= 12 ? 'PM' : 'AM';
+          hours = hours % 12 || 12;
+        }
+        const showSeconds = toggleSeconds.checked;
+        const h = pad(hours);
+        const m = pad(minutes);
+        const s = pad(seconds);
+
+        timeEl.textContent = showSeconds ? `${h}:${m}:${s} ${!use24 ? ampm : ''}`.trim() : `${h}:${m} ${!use24 ? ampm : ''}`.trim();
+
+        // date in locale (Japanese)
+        const y = now.getFullYear();
+        const mon = now.getMonth() + 1;
+        const d = now.getDate();
+        const weekday = ['日','月','火','水','木','金','土'][now.getDay()];
+        dateEl.textContent = `${y}年${mon}月${d}日（${weekday}）`;
+      }
+
+      // keep updating smoothly
+      update();
+      setInterval(update, 250);
+
+      fullscreenBtn.addEventListener('click', async ()=>{
+        try{
+          if(!document.fullscreenElement){
+            await document.documentElement.requestFullscreen();
+            fullscreenBtn.textContent = '終了';
+          } else {
+            await document.exitFullscreen();
+            fullscreenBtn.textContent = 'フルスクリーン';
+          }
+        }catch(e){
+          console.warn(e);
+        }
+      });
+
+      copyBtn.addEventListener('click', async ()=>{
+        try{
+          await navigator.clipboard.writeText(timeEl.textContent + ' ' + dateEl.textContent);
+          copyBtn.textContent = 'コピー完了！';
+          setTimeout(()=> copyBtn.textContent = '時刻をコピー',1200);
+        }catch(e){
+          copyBtn.textContent = 'コピー失敗';
+          setTimeout(()=> copyBtn.textContent = '時刻をコピー',1200);
+        }
+      });
+
+      // keyboard: space toggles seconds, "t" toggles 24h
+      window.addEventListener('keydown',(e)=>{
+        if(e.key === ' '){
+          toggleSeconds.checked = !toggleSeconds.checked; update(); e.preventDefault();
+        }
+        if(e.key.toLowerCase() === 't'){
+          toggle24.checked = !toggle24.checked; update();
+        }
+      });
+
+      // high-contrast when user prefers
+      if(window.matchMedia && window.matchMedia('(prefers-contrast: more)').matches){
+        document.body.style.filter = 'contrast(1.05)';
+      }
+
+      // accessibility: expose time to screen readers every time it changes
+      setInterval(()=>{
+        timeEl.setAttribute('aria-live','polite');
+      },1000*60);
+
+    })();
+  </script>
+</body>
+</html>
