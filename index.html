@@ -116,7 +116,6 @@
 
     <p class="small" style="margin-top:12px;opacity:0.9">⌘/Ctrl + F でブラウザ全画面も使えるよ。ダークテーマで大きく表示します。</p>
   </div>
-  <audio id="alarmSound" src="sound.mp3"></audio>
 
   <script>
     (function(){
@@ -127,7 +126,6 @@
       const sizeRange = document.getElementById('sizeRange');
       const fullscreenBtn = document.getElementById('fullscreenBtn');
       const copyBtn = document.getElementById('copyBtn');
-      const sound = document.getElementById('alarmSound');  
 
       // initialize font-size from range
       const root = document.documentElement;
@@ -213,19 +211,8 @@
       setInterval(()=>{
         timeEl.setAttribute('aria-live','polite');
       },1000*60);
-    })();
-      // スペースキーで音を再生
-document.addEventListener('keydown', (e) => {
-  if (e.code === "Space") {
-    e.preventDefault(); // スクロール防止
-    if (sound) {
-          sound.pause();
-          sound.currentTime = 0;
-          sound.play();
-    }
-  };
 
-  
+    })();
   </script>
 </body>
 </html>
